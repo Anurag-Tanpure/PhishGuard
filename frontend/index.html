@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>PhishGuard | Premium Threat Intelligence</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body { 
+      font-family: 'Inter', sans-serif; 
+      transition: background-color 0.4s ease, color 0.4s ease;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    
+    main { flex: 1 0 auto; }
+    footer { flex-shrink: 0; }
+
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+
+    /* SPA View Transitions (FIXED FOR SCROLL) */
+    .view-section { display: none; }
+    .view-hidden { display: none !important; }
+    .view-active { display: block; animation: viewFadeIn 0.4s ease-out forwards; }
+    
+    @keyframes viewFadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Nav Active State */
+    .nav-link { position: relative; }
+    .nav-link.active { color: #6366f1; font-weight: 600; }
+    .dark .nav-link.active { color: #818cf8; text-shadow: 0 0 10px rgba(129,140,248,0.3); }
+    .nav-link.active::after {
+      content: ''; position: absolute; bottom: -20px; left: 0; width: 100%; height: 2px;
+      background: #6366f1; box-shadow: 0 0 10px rgba(99,102,241,0.5);
+    }
+    
+    .mobile-nav-link.active { color: #6366f1; font-weight: 700; padding-left: 8px; border-left: 3px solid #6366f1;}
+    .dark .mobile-nav-link.active { color: #818cf8; border-left-color: #818cf8;}
+
+    /* Filter Buttons */
+    .filter-btn.active { background-color: #6366f1; color: white; border-color: #6366f1; }
+    .dark .filter-btn.active { background-color: rgba(99,102,241,0.2); color: #818cf8; border-color: rgba(99,102,241,0.5); }
+
+    /* Premium Glassmorphism */
+    .bento-card {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: all 0.3s ease;
+    }
+    
+    /* Light Mode */
+    html:not(.dark) body { background-color: #f8fafc; color: #1e293b; }
+    html:not(.dark) .bento-card {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+    html:not(.dark) .bento-card:hover {
+      box-shadow: 0 15px 40px rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.3);
+      transform: translateY(-2px);
+    }
+
+    /* Dark Mode */
+    .dark body { background-color: #05050A; color: #e2e8f0; }
+    .dark .bento-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+    .dark .bento-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-2px);
+    }
+
+    /* Animations */
+    @keyframes dataFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+    .animated-line {
+      background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.8), transparent);
+      background-size: 200% 100%;
+      animation: dataFlow 2s linear infinite;
+    }
+    .node-pulse { animation: pulseNode 2s infinite; }
+    @keyframes pulseNode {
+      0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+    @keyframes growBar { from { height: 0; opacity: 0; } to { opacity: 1; } }
+    .bar-chart-fill { animation: growBar 1.5s ease-out forwards; transform-origin: bottom; }
+  </style>
+
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: {} } }
+  </script>
+</head>
+<body class="relative selection:bg-indigo-500/30">
+
+  <canvas id="bg-canvas" class="fixed inset-0 z-0 pointer-events-none opacity-60 dark:opacity-40"></canvas>
+  <div class="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 dark:bg-indigo-600/15 blur-[120px] rounded-full z-0 pointer-events-none transition-colors duration-500"></div>
+  <div class="fixed top-[40%] right-[-10%] w-[600px] h-[600px] bg-purple-500/15 dark:bg-purple-600/10 blur-[150px] rounded-full z-0 pointer-events-none transition-colors duration-500"></div>
+
+  <div id="auth-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center px-4">
+    <div class="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onclick="toggleAuthModal()"></div>
+    <div class="bento-card relative w-full max-w-md p-8 rounded-2xl z-10 shadow-2xl">
+      <button onclick="toggleAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+      <div class="flex space-x-6 mb-8 border-b border-slate-200 dark:border-white/10 pb-2">
+        <button id="tab-login" onclick="switchAuthTab('login')" class="text-sm font-bold tracking-wide text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 pb-2 transition-all">LOGIN</button>
+        <button id="tab-signup" onclick="switchAuthTab('signup')" class="text-sm font-bold tracking-wide text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 pb-2 transition-all">SIGN UP</button>
+      </div>
+      <form id="form-login" onsubmit="handleAuth(event)" class="space-y-5">
+        <div><label class="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">Email</label><input type="email" class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg py-2.5 pl-4 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500 transition-colors" required></div>
+        <div><label class="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">Password</label><input type="password" class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg py-2.5 pl-4 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500 transition-colors" required></div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg shadow-lg transition-colors">Authenticate</button>
+      </form>
+      <form id="form-signup" onsubmit="handleAuth(event)" class="space-y-5 hidden">
+        <div><label class="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">Full Name</label><input type="text" class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg py-2.5 pl-4 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500 transition-colors" required></div>
+        <div><label class="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">Email</label><input type="email" class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg py-2.5 pl-4 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500 transition-colors" required></div>
+        <div><label class="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">Password</label><input type="password" class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg py-2.5 pl-4 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500 transition-colors" required></div>
+        <button type="submit" class="w-full bg-slate-800 dark:bg-white text-white dark:text-black font-medium py-2.5 rounded-lg shadow-lg transition-colors">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <header class="relative z-50 border-b border-slate-200/50 dark:border-white/[0.05] bg-white/40 dark:bg-black/20 backdrop-blur-xl sticky top-0 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3 group cursor-pointer" onclick="switchView('home')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden">
+          <i class="fas fa-shield-halved text-indigo-600 dark:text-indigo-400 text-lg drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]"></i>
+        </div>
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Phish<span class="text-indigo-600 dark:text-indigo-400 font-medium">Guard</span></h1>
+      </div>
+      <nav class="hidden md:flex space-x-8">
+        <button onclick="switchView('home')" id="nav-home" class="nav-link active text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors text-sm font-medium">Home</button>
+        <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-link text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors text-sm font-medium">Dashboard</button>
+        <button onclick="switchView('history')" id="nav-history" class="nav-link text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors text-sm font-medium">History</button>
+        <button onclick="switchView('help')" id="nav-help" class="nav-link text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors text-sm font-medium">Help</button>
+        <button onclick="switchView('about')" id="nav-about" class="nav-link text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors text-sm font-medium">About</button>
+      </nav>
+      <div class="flex items-center space-x-3">
+        <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-yellow-300 hover:bg-slate-200 dark:hover:bg-white/20 transition-all">
+          <i class="fas fa-sun dark:hidden text-orange-500"></i><i class="fas fa-moon hidden dark:block"></i>
+        </button>
+        <div id="auth-buttons" class="hidden sm:block">
+          <button id="btn-login-trigger" onclick="toggleAuthModal()" class="bg-indigo-50 dark:bg-white/5 border border-indigo-100 dark:border-white/10 text-indigo-700 dark:text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-white/10 transition-all shadow-sm"><i class="fas fa-user-circle mr-1.5"></i> Login</button>
+          <div id="user-menu" class="hidden items-center space-x-3">
+             <div class="text-right"><p class="text-sm font-bold text-slate-800 dark:text-white">Admin Console</p></div>
+             <button onclick="handleLogout()" class="bg-red-50 dark:bg-red-500/10 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"><i class="fas fa-sign-out-alt"></i></button>
+          </div>
+        </div>
+        <button onclick="toggleMobileMenu()" class="md:hidden w-9 h-9 flex items-center justify-center text-slate-700 dark:text-white focus:outline-none"><i class="fas fa-bars text-xl"></i></button>
+      </div>
+    </div>
+    <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-white/95 dark:bg-black/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-6 py-4 flex flex-col space-y-4 shadow-lg z-50">
+        <button onclick="switchView('home')" id="nav-mobile-home" class="mobile-nav-link active text-left text-slate-800 dark:text-slate-300">Home</button>
+        <button onclick="switchView('dashboard')" id="nav-mobile-dashboard" class="mobile-nav-link text-left text-slate-800 dark:text-slate-300">Dashboard</button>
+        <button onclick="switchView('history')" id="nav-mobile-history" class="mobile-nav-link text-left text-slate-800 dark:text-slate-300">History</button>
+        <button onclick="switchView('help')" id="nav-mobile-help" class="mobile-nav-link text-left text-slate-800 dark:text-slate-300">Help</button>
+        <button onclick="switchView('about')" id="nav-mobile-about" class="mobile-nav-link text-left text-slate-800 dark:text-slate-300">About</button>
+        <div class="pt-2 mt-2 border-t border-slate-200 dark:border-white/10"><button onclick="toggleAuthModal(); toggleMobileMenu()" class="w-full bg-indigo-50 dark:bg-white/5 border border-indigo-100 text-indigo-700 dark:text-white px-5 py-2.5 rounded-lg text-sm font-medium">Login / Register</button></div>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-12 w-full">
+    
+    <div id="view-home" class="view-section view-active">
+      <div class="mb-12">
+        <div class="inline-flex items-center px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-xs font-semibold tracking-wide uppercase mb-4">
+          <span class="w-2 h-2 rounded-full bg-indigo-500 mr-2 animate-pulse"></span> Modular Detection Engine
+        </div>
+        <h2 class="text-3xl md:text-5xl font-bold mb-4 text-slate-900 dark:text-white tracking-tight">Zero-Trust Content Analysis</h2>
+        <p class="text-slate-600 dark:text-slate-400 max-w-2xl text-base leading-relaxed">Deploy advanced heuristics and isolated sandboxing to inspect URLs, communications, and synthetic media across your environment.</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
+        <div class="xl:col-span-2 relative group rounded-2xl bento-card overflow-hidden flex flex-col">
+          <div class="p-6 md:p-8 flex-grow flex flex-col">
+            <div class="flex items-start justify-between mb-6">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Network & URL Forensics</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Scan for homograph domains and payload drops.</p>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 flex items-center justify-center"><i class="fas fa-globe text-indigo-500 dark:text-indigo-400 text-xl"></i></div>
+            </div>
+            <div class="mt-auto bg-white dark:bg-black/40 rounded-xl border border-slate-200 dark:border-white/5 p-2 flex items-center shadow-inner relative z-10">
+              <span class="text-slate-400 px-3 hidden sm:inline"><i class="fas fa-link text-xs"></i></span>
+              <input type="url" id="url-input" class="bg-transparent border-none text-slate-800 dark:text-white text-sm w-full focus:ring-0 outline-none placeholder-slate-400 font-mono px-2 sm:px-0" placeholder="https://suspicious-link.com" required>
+              <button class="bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all ml-2 whitespace-nowrap" onclick="analyzeContent('url', event)">Scan URL</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative group rounded-2xl bento-card overflow-hidden flex flex-col">
+          <div class="p-6 md:p-8 flex-grow flex flex-col">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Email Heuristics</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Header & semantic analysis.</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 flex items-center justify-center"><i class="fas fa-envelope-open-text text-teal-500 dark:text-teal-400"></i></div>
+            </div>
+            <textarea id="email-input" rows="3" class="w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-sm text-slate-700 dark:text-slate-300 font-mono outline-none placeholder-slate-400 resize-none mt-auto shadow-inner" placeholder="Paste headers or body..."></textarea>
+            <button class="w-full mt-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 text-slate-700 dark:text-white py-2.5 rounded-xl text-sm font-medium transition-all" onclick="analyzeContent('email', event)">Parse Data</button>
+          </div>
+        </div>
+        
+        <div class="relative group rounded-2xl bento-card overflow-hidden flex flex-col">
+          <div class="p-6 md:p-8 flex-grow flex flex-col">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Visual Forensics</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Detect synthetic anomalies.</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 flex items-center justify-center"><i class="fas fa-image text-purple-500 dark:text-purple-400"></i></div>
+            </div>
+            <div class="mt-auto border border-dashed border-slate-300 dark:border-white/15 bg-white/50 dark:bg-black/20 hover:bg-slate-50 hover:border-purple-300 rounded-xl p-4 text-center cursor-pointer transition-all group/drop" onclick="document.getElementById('image-file').click()">
+              <i class="fas fa-cloud-arrow-up text-slate-400 text-xl mb-2 group-hover/drop:text-purple-500 transition-colors"></i>
+              <p id="image-filename" class="text-xs font-medium text-slate-600 dark:text-slate-300 truncate px-2">Drop image or click</p>
+              <input type="file" id="image-file" class="hidden" accept="image/*" onchange="updateFileName('image')" />
+            </div>
+            <button class="w-full mt-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 text-slate-700 dark:text-white py-2.5 rounded-xl text-sm font-medium transition-all" onclick="analyzeContent('image', event)">Inspect Binary</button>
+          </div>
+        </div>
+        
+        <div class="xl:col-span-2 relative group rounded-2xl bento-card overflow-hidden flex flex-col">
+          <div class="p-6 md:p-8 flex-grow flex flex-col md:flex-row items-center md:space-x-8">
+            <div class="w-full md:w-1/2 mb-6 md:mb-0">
+              <div class="flex items-center space-x-3 mb-2">
+                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 flex items-center justify-center"><i class="fas fa-film text-blue-500 dark:text-blue-400"></i></div>
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Temporal Manipulation</h3>
+              </div>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Analyze frame-by-frame data for deepfake artifacts, audio sync tears, and AI synthesis markers using our neural engine.</p>
+              <button class="w-full sm:w-auto bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 border border-blue-200 text-blue-700 dark:text-blue-300 px-6 py-2.5 rounded-xl text-sm font-medium transition-all" onclick="analyzeContent('video', event)">Initialize Video Scan</button>
+            </div>
+            <div class="w-full md:w-1/2 relative z-10">
+              <div class="border border-dashed border-slate-300 dark:border-white/15 bg-white/50 dark:bg-black/20 hover:bg-slate-50 hover:border-blue-300 rounded-xl p-6 md:p-8 text-center cursor-pointer transition-all group/drop" onclick="document.getElementById('video-file').click()">
+                <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-3 border border-slate-200 transition-all"><i class="fas fa-upload text-slate-400 group-hover/drop:text-blue-500"></i></div>
+                <p id="video-filename" class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate px-2">Upload Video Payload</p>
+                <input type="file" id="video-file" class="hidden" accept="video/*" onchange="updateFileName('video')" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="result-section" class="hidden relative rounded-3xl bento-card overflow-hidden mb-12">
+         <div class="px-6 md:px-8 py-5 border-b border-slate-200 dark:border-white/[0.05] flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.01]">
+            <h2 class="text-sm font-semibold text-slate-600 dark:text-slate-300 tracking-widest uppercase">Diagnostic Telemetry</h2>
+            <button class="text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors" onclick="closeResult()"><i class="fas fa-times"></i></button>
+         </div>
+         <div class="grid grid-cols-1 lg:grid-cols-12 gap-0">
+            <div class="lg:col-span-4 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-white/[0.05] flex flex-col items-center justify-center bg-white/30 dark:bg-black/20">
+               <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">Threat Confidence</h4>
+               <div class="relative inline-flex items-center justify-center mb-6">
+                  <svg class="w-32 h-32 md:w-40 md:h-40 transform -rotate-90">
+                     <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="6" fill="transparent" class="text-slate-200 dark:text-white/5 origin-center transform scale-[0.8] md:scale-100"/>
+                     <circle id="score-circle" cx="80" cy="80" r="70" stroke="currentColor" stroke-width="6" fill="transparent" stroke-dasharray="439.8" stroke-dashoffset="439.8" stroke-linecap="round" class="text-indigo-500 transition-all duration-[1.5s] ease-out drop-shadow-sm origin-center transform scale-[0.8] md:scale-100"/>
+                  </svg>
+                  <span id="confidence-score" class="absolute text-3xl md:text-4xl font-light text-slate-900 dark:text-white font-mono">--%</span>
+               </div>
+               <div id="status-badge" class="px-4 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm font-medium shadow-sm flex items-center space-x-2"></div>
+            </div>
+            <div class="lg:col-span-8 p-6 md:p-8 flex flex-col justify-center">
+               <div class="mb-8">
+                  <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Engine Assessment</h4>
+                  <div class="bg-slate-50/80 dark:bg-black/30 border border-slate-200 dark:border-white/[0.05] rounded-xl p-5 shadow-inner">
+                     <p id="result-explanation" class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed"></p>
+                  </div>
+               </div>
+               <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                     <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3"><i class="fas fa-crosshairs mr-1.5"></i> Indicators</h4>
+                     <ul id="result-indicators" class="space-y-2 text-sm text-slate-600 dark:text-slate-400"></ul>
+                  </div>
+                  <div>
+                     <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3"><i class="fas fa-shield-virus mr-1.5"></i> Recommendations</h4>
+                     <div id="result-recommendations" class="bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/10 rounded-xl p-4 space-y-2 text-sm text-slate-700 dark:text-slate-300"></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    <div id="view-dashboard" class="view-section view-hidden">
+      <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h2 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Threat Operations Center</h2>
+          <p class="text-slate-500 dark:text-slate-400">Live network node telemetry, payload analysis, and risk distribution.</p>
+        </div>
+        <button class="flex items-center border border-slate-300 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-700 dark:text-white px-4 py-2 rounded-lg text-sm transition-all shadow-sm">
+          <i class="fas fa-file-export mr-2"></i> Export Report
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bento-card p-6 rounded-2xl relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl -mr-10 -mt-10"></div>
+          <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2">Total Scans (24h)</p>
+          <div class="flex justify-between items-end">
+             <p class="text-4xl font-light font-mono text-slate-900 dark:text-white">12,403</p>
+             <span class="text-xs text-green-500 font-bold"><i class="fas fa-arrow-up mr-1"></i>4.2%</span>
+          </div>
+        </div>
+        <div class="bento-card p-6 rounded-2xl relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-24 h-24 bg-green-500/10 rounded-full blur-xl -mr-10 -mt-10"></div>
+          <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2">Authentic Content</p>
+          <p class="text-4xl font-light font-mono text-green-600 dark:text-green-400">8,211</p>
+        </div>
+        <div class="bento-card p-6 rounded-2xl relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-24 h-24 bg-red-500/10 rounded-full blur-xl -mr-10 -mt-10"></div>
+          <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2">Threats Isolated</p>
+          <div class="flex justify-between items-end">
+             <p class="text-4xl font-light font-mono text-red-600 dark:text-red-400">4,192</p>
+             <span class="text-xs text-red-500 font-bold"><i class="fas fa-arrow-up mr-1"></i>1.1%</span>
+          </div>
+        </div>
+        <div class="bento-card p-6 rounded-2xl relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl -mr-10 -mt-10"></div>
+          <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2">System Confidence</p>
+          <p class="text-4xl font-light font-mono text-indigo-600 dark:text-indigo-400">98.4%</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bento-card p-6 rounded-2xl flex flex-col overflow-hidden">
+          <div class="flex justify-between items-center mb-6">
+             <h3 class="text-sm font-semibold text-slate-900 dark:text-white tracking-wide">Threat Vector Distribution</h3>
+             <select class="bg-transparent border border-slate-300 dark:border-white/10 rounded text-xs text-slate-600 dark:text-slate-400 p-1 outline-none">
+                <option>Last 7 Days</option>
+                <option>Last 30 Days</option>
+             </select>
+          </div>
+          <div class="flex-grow flex items-end justify-around h-48 border-b border-l border-slate-300 dark:border-white/10 pb-2 pl-2 mt-4 relative ml-4">
+             <div class="absolute left-[-25px] top-0 text-[10px] text-slate-400 font-mono">10k</div>
+             <div class="absolute left-[-20px] top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-mono">5k</div>
+             
+             <div class="flex flex-col items-center w-8 sm:w-12 group">
+                <div class="w-full bg-indigo-500/80 rounded-t-sm bar-chart-fill group-hover:bg-indigo-400 transition-colors" style="height: 80%;"></div>
+                <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">URL</span>
+             </div>
+             <div class="flex flex-col items-center w-8 sm:w-12 group">
+                <div class="w-full bg-purple-500/80 rounded-t-sm bar-chart-fill group-hover:bg-purple-400 transition-colors" style="height: 45%;"></div>
+                <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Email</span>
+             </div>
+             <div class="flex flex-col items-center w-8 sm:w-12 group">
+                <div class="w-full bg-teal-500/80 rounded-t-sm bar-chart-fill group-hover:bg-teal-400 transition-colors" style="height: 60%;"></div>
+                <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Image</span>
+             </div>
+             <div class="flex flex-col items-center w-8 sm:w-12 group">
+                <div class="w-full bg-red-500/80 rounded-t-sm bar-chart-fill group-hover:bg-red-400 transition-colors" style="height: 25%;"></div>
+                <span class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Video</span>
+             </div>
+          </div>
+        </div>
+
+        <div class="bento-card p-6 rounded-2xl flex flex-col h-[300px] lg:h-auto">
+           <h3 class="text-sm font-semibold text-slate-900 dark:text-white tracking-wide mb-6 flex items-center">
+              <span class="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></span> Active Threat Feed
+           </h3>
+           <div class="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+              <div class="border-l-2 border-red-500 pl-3">
+                 <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono mb-1">T-00:02:14</p>
+                 <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium truncate">Homograph spoofing detected.</p>
+                 <p class="text-[10px] text-red-600 dark:text-red-400">Severity: High</p>
+              </div>
+              <div class="border-l-2 border-yellow-500 pl-3">
+                 <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono mb-1">T-00:15:33</p>
+                 <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium truncate">Temporal sync anomaly in video.</p>
+                 <p class="text-[10px] text-yellow-600 dark:text-yellow-400">Severity: Medium</p>
+              </div>
+              <div class="border-l-2 border-red-500 pl-3">
+                 <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono mb-1">T-00:42:01</p>
+                 <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium truncate">BEC semantic match in email.</p>
+                 <p class="text-[10px] text-red-600 dark:text-red-400">Severity: High</p>
+              </div>
+              <div class="border-l-2 border-red-500 pl-3">
+                 <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono mb-1">T-01:05:12</p>
+                 <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium truncate">GAN artifact isolated in image.</p>
+                 <p class="text-[10px] text-red-600 dark:text-red-400">Severity: High</p>
+              </div>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-history" class="view-section view-hidden">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">Forensic Log Archive</h2>
+          <p class="text-slate-500 dark:text-slate-400">Review historical payload analyses across all vectors.</p>
+        </div>
+        
+        <div class="flex flex-wrap gap-2" id="history-filters">
+           <button class="filter-btn active border border-slate-300 dark:border-white/10 bg-white/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm" onclick="filterHistory('all', event)">All</button>
+           <button class="filter-btn border border-slate-300 dark:border-white/10 bg-white/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm" onclick="filterHistory('url', event)"><i class="fas fa-link mr-1"></i> URL</button>
+           <button class="filter-btn border border-slate-300 dark:border-white/10 bg-white/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm" onclick="filterHistory('email', event)"><i class="fas fa-envelope mr-1"></i> Email</button>
+           <button class="filter-btn border border-slate-300 dark:border-white/10 bg-white/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm" onclick="filterHistory('image', event)"><i class="fas fa-image mr-1"></i> Image</button>
+           <button class="filter-btn border border-slate-300 dark:border-white/10 bg-white/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm" onclick="filterHistory('video', event)"><i class="fas fa-video mr-1"></i> Video</button>
+        </div>
+      </div>
+
+      <div class="bento-card rounded-2xl overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left min-w-[600px]">
+            <thead class="bg-slate-50/80 dark:bg-white/[0.02] border-b border-slate-200 dark:border-white/[0.05]">
+              <tr>
+                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-widest whitespace-nowrap">Target / File</th>
+                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-widest whitespace-nowrap">Vector</th>
+                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-widest whitespace-nowrap">Timestamp</th>
+                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-widest text-right whitespace-nowrap">Status</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body" class="divide-y divide-slate-200 dark:divide-white/[0.05] text-sm">
+              <tr class="history-row hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors" data-type="url">
+                <td class="px-6 py-4 font-mono text-slate-800 dark:text-slate-300 truncate max-w-[150px] md:max-w-xs">secure-auth-update.net</td>
+                <td class="px-6 py-4 text-indigo-600 dark:text-indigo-400 whitespace-nowrap"><i class="fas fa-globe mr-2"></i> URL</td>
+                <td class="px-6 py-4 text-slate-500 whitespace-nowrap">Just now</td>
+                <td class="px-6 py-4 text-right whitespace-nowrap"><span class="px-3 py-1 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] md:text-xs font-bold border border-red-200 dark:border-red-500/30">PHISHING</span></td>
+              </tr>
+              <tr class="history-row hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors" data-type="image">
+                <td class="px-6 py-4 font-mono text-slate-800 dark:text-slate-300 truncate max-w-[150px] md:max-w-xs">campaign_asset_v2.jpg</td>
+                <td class="px-6 py-4 text-purple-600 dark:text-purple-400 whitespace-nowrap"><i class="fas fa-image mr-2"></i> Image</td>
+                <td class="px-6 py-4 text-slate-500 whitespace-nowrap">5 mins ago</td>
+                <td class="px-6 py-4 text-right whitespace-nowrap"><span class="px-3 py-1 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-[10px] md:text-xs font-bold border border-green-200 dark:border-green-500/30">AUTHENTIC</span></td>
+              </tr>
+              <tr class="history-row hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors" data-type="email">
+                <td class="px-6 py-4 font-mono text-slate-800 dark:text-slate-300 truncate max-w-[150px] md:max-w-xs">urgent_wire_transfer.eml</td>
+                <td class="px-6 py-4 text-teal-600 dark:text-teal-400 whitespace-nowrap"><i class="fas fa-envelope mr-2"></i> Email</td>
+                <td class="px-6 py-4 text-slate-500 whitespace-nowrap">12 mins ago</td>
+                <td class="px-6 py-4 text-right whitespace-nowrap"><span class="px-3 py-1 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] md:text-xs font-bold border border-red-200 dark:border-red-500/30">SPOOFED</span></td>
+              </tr>
+              <tr class="history-row hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors" data-type="video">
+                <td class="px-6 py-4 font-mono text-slate-800 dark:text-slate-300 truncate max-w-[150px] md:max-w-xs">ceo_address_internal.mp4</td>
+                <td class="px-6 py-4 text-blue-600 dark:text-blue-400 whitespace-nowrap"><i class="fas fa-video mr-2"></i> Video</td>
+                <td class="px-6 py-4 text-slate-500 whitespace-nowrap">1 hour ago</td>
+                <td class="px-6 py-4 text-right whitespace-nowrap"><span class="px-3 py-1 rounded-full bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-[10px] md:text-xs font-bold border border-yellow-200 dark:border-yellow-500/30">SYNTHETIC</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-help" class="view-section view-hidden">
+      <div class="mb-10 text-center max-w-2xl mx-auto">
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight mb-4">Platform Architecture & Guide</h2>
+        <p class="text-slate-600 dark:text-slate-400">Understand how PhishGuard's heuristic engine processes payloads to deliver actionable intelligence.</p>
+      </div>
+
+      <div class="bento-card p-4 md:p-8 rounded-2xl mb-12 overflow-x-auto relative">
+         <div class="md:hidden absolute top-2 right-4 text-[10px] text-slate-400 font-medium">Swipe to view full pipeline <i class="fas fa-arrow-right"></i></div>
+         <div class="min-w-[700px] flex items-center justify-between py-6 px-4">
+            <div class="flex flex-col items-center w-48 relative z-10">
+               <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-slate-700 dark:text-white text-2xl mb-4 shadow-lg node-pulse"><i class="fas fa-cloud-upload-alt"></i></div>
+               <h4 class="font-bold text-slate-900 dark:text-white text-sm mb-1">1. Payload Injection</h4>
+               <p class="text-xs text-center text-slate-500 dark:text-slate-400">User inputs URL, Email, or Media via the Home interface.</p>
+            </div>
+            <div class="flex-grow h-1 mx-4 animated-line rounded-full relative"><i class="fas fa-chevron-right absolute -right-2 top-1/2 -translate-y-1/2 text-indigo-500 text-xs"></i></div>
+            <div class="flex flex-col items-center w-48 relative z-10">
+               <div class="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-500/20 border-2 border-indigo-500 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-2xl mb-4 shadow-[0_0_20px_rgba(99,102,241,0.3)] animate-spin-slow" style="animation: spin 8s linear infinite;"><i class="fas fa-microchip"></i></div>
+               <h4 class="font-bold text-slate-900 dark:text-white text-sm mb-1">2. Core Heuristics</h4>
+               <p class="text-xs text-center text-slate-500 dark:text-slate-400">AI sandboxes file, checks metadata, and runs spatial analysis.</p>
+            </div>
+            <div class="flex-grow h-1 mx-4 animated-line rounded-full relative"><i class="fas fa-chevron-right absolute -right-2 top-1/2 -translate-y-1/2 text-indigo-500 text-xs"></i></div>
+            <div class="flex flex-col items-center w-48 relative z-10">
+               <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-green-500 text-2xl mb-4 shadow-lg node-pulse"><i class="fas fa-shield-check"></i></div>
+               <h4 class="font-bold text-slate-900 dark:text-white text-sm mb-1">3. Actionable Intel</h4>
+               <p class="text-xs text-center text-slate-500 dark:text-slate-400">Provides exact IOCs, scores, and remediation steps.</p>
+            </div>
+         </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div class="bento-card p-6 rounded-2xl border-l-4 border-indigo-500">
+           <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2"><i class="fas fa-globe text-indigo-500 mr-2"></i> URL & Phishing Defense</h3>
+           <p class="text-sm text-slate-600 dark:text-slate-400">Submit suspicious links. The engine checks domain age, SSL certificates, homograph attacks, and traces hidden redirect chains without executing malicious code.</p>
+        </div>
+        <div class="bento-card p-6 rounded-2xl border-l-4 border-purple-500">
+           <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2"><i class="fas fa-image text-purple-500 mr-2"></i> Synthetic Media Detection</h3>
+           <p class="text-sm text-slate-600 dark:text-slate-400">Upload images or videos. The engine performs Error Level Analysis (ELA) to find boundaries, and analyzes frame-by-frame temporal consistency in videos.</p>
+        </div>
+      </div>
+
+      <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 text-center">Frequently Asked Questions</h3>
+      <div class="space-y-4 max-w-4xl mx-auto">
+         <div class="bento-card p-6 rounded-xl">
+            <h4 class="font-bold text-slate-900 dark:text-white mb-2">Are my uploaded files stored on your servers?</h4>
+            <p class="text-sm text-slate-600 dark:text-slate-400">No. PhishGuard operates on a zero-retention policy for free-tier users. Payloads are processed in volatile memory (RAM) and wiped immediately after.</p>
+         </div>
+         <div class="bento-card p-6 rounded-xl">
+            <h4 class="font-bold text-slate-900 dark:text-white mb-2">What file sizes are supported?</h4>
+            <p class="text-sm text-slate-600 dark:text-slate-400">Currently, images are limited to 50MB and video files to 100MB to ensure rapid scanning times. Enterprise users have expanded limits via API.</p>
+         </div>
+      </div>
+    </div>
+
+    <div id="view-about" class="view-section view-hidden">
+      
+      <div class="max-w-6xl mx-auto mb-16">
+        <div class="text-center mb-10">
+           <h3 class="text-3xl font-bold text-slate-900 dark:text-white tracking-widest">THE CORE TEAM</h3>
+           <p class="text-slate-500 dark:text-slate-400 mt-2">The architects behind the PhishGuard heuristic engine.</p>
+           <div class="w-16 h-1 bg-indigo-500 mx-auto mt-4 rounded-full"></div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+           <div class="bento-card rounded-2xl p-6 text-center group">
+              <div class="w-24 h-24 mx-auto rounded-full bg-slate-200 dark:bg-white/10 border-2 border-slate-300 dark:border-white/20 mb-4 overflow-hidden relative shadow-lg group-hover:border-indigo-500 transition-colors">
+                 <img src="https://media.licdn.com/dms/image/v2/D4D35AQH-1F_uBkp9dA/profile-framedphoto-shrink_200_200/B4DZvqH6kUH0AY-/0/1769159502345?e=1772733600&v=beta&t=vA2m2qLjTUIYuqqvbkDuN528KeNVzakFpvNjOwxdlYE" alt="Aniket Chourasiya" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-lg">Aniket Chourasiya</h4>
+              <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold tracking-wider uppercase mb-3">Lead Developer</p>
+           </div>
+           <div class="bento-card rounded-2xl p-6 text-center group">
+              <div class="w-24 h-24 mx-auto rounded-full bg-slate-200 dark:bg-white/10 border-2 border-slate-300 dark:border-white/20 mb-4 overflow-hidden relative shadow-lg group-hover:border-indigo-500 transition-colors">
+                 <img src="https://media.licdn.com/dms/image/v2/D4D03AQHTCVu6Z59vnQ/profile-displayphoto-scale_200_200/B4DZmP1r3nJYAY-/0/1759054841838?e=1773878400&v=beta&t=k4rm_VtKX-WoI49Kg18eIyhKxY0cZfzPdYEh_UqaMNM" alt="Kanak Rawat" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-lg">Kanak Rawat</h4>
+              <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold tracking-wider uppercase mb-3">Security Analyst</p>
+           </div>
+           <div class="bento-card rounded-2xl p-6 text-center group">
+              <div class="w-24 h-24 mx-auto rounded-full bg-slate-200 dark:bg-white/10 border-2 border-slate-300 dark:border-white/20 mb-4 overflow-hidden relative shadow-lg group-hover:border-indigo-500 transition-colors">
+                 <img src="https://media.licdn.com/dms/image/v2/D4D03AQHm35Ss_niloQ/profile-displayphoto-shrink_200_200/B4DZa_9cmHHsAY-/0/1746977279487?e=1773878400&v=beta&t=ipAGqdJyi-2krTvp_oT7rUlkknbYl-O4dsbEUbutgzw" alt="Anurag Tanpure" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-lg">Anurag Tanpure</h4>
+              <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold tracking-wider uppercase mb-3">Backend Developer</p>
+           </div>
+           <div class="bento-card rounded-2xl p-6 text-center group">
+              <div class="w-24 h-24 mx-auto rounded-full bg-slate-200 dark:bg-white/10 border-2 border-slate-300 dark:border-white/20 mb-4 overflow-hidden relative shadow-lg group-hover:border-indigo-500 transition-colors">
+                 <img src="https://media.licdn.com/dms/image/v2/D4D03AQE-o_kWU_T-dA/profile-displayphoto-shrink_100_100/B4DZe2imRJHMAU-/0/1751114213353?e=1773878400&v=beta&t=cM6zy8CFQGpgbCgVNZ-EaggyrSdWdOIDtmN9U6tThf4" alt="Gautam Verma" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-lg">Gautam Verma</h4>
+              <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold tracking-wider uppercase mb-3">UI/UX & Design</p>
+           </div>
+        </div>
+      </div>
+
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">Securing the Digital Frontier</h2>
+        <div class="bento-card p-8 md:p-12 rounded-3xl text-left border-t-4 border-indigo-500">
+          <p class="text-slate-700 dark:text-slate-300 leading-relaxed mb-6 text-lg">PhishGuard is built on the philosophy that organizations and individuals deserve absolute clarity in an increasingly synthetic world. As generative AI models and automated adversarial frameworks lower the barrier for sophisticated cyber attacks, traditional signature-based defenses are no longer sufficient.</p>
+          <p class="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">We engineer multi-vector heuristic pipelines that mathematically verify the authenticity of inbound network traffic, communications, and media assets. Our goal is to provide a zero-trust layer of intelligence to your daily operations.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="w-full relative z-20 border-t border-slate-200/50 dark:border-white/[0.05] bg-white/60 dark:bg-black/40 backdrop-blur-xl transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-8">
+        <div class="lg:col-span-2">
+          <div class="flex items-center space-x-3 mb-4">
+             <i class="fas fa-shield-halved text-indigo-600 dark:text-indigo-400 text-xl"></i>
+             <span class="text-xl font-bold text-slate-900 dark:text-white tracking-wide">PhishGuard</span>
+          </div>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm">Zero-trust content analysis and deepfake detection engine. Securing your digital frontier mathematically.</p>
+          <form class="flex mb-4 max-w-xs" onsubmit="event.preventDefault(); alert('Subscribed!');">
+             <input type="email" placeholder="Subscribe to threat intel..." class="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-l-lg px-4 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500" required>
+             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-r-lg text-sm font-medium transition-colors"><i class="fas fa-paper-plane"></i></button>
+          </form>
+        </div>
+        <div>
+          <h4 class="text-slate-900 dark:text-white font-bold mb-4">Product</h4>
+          <ul class="space-y-3 text-sm text-slate-500 dark:text-slate-400">
+            <li><button onclick="switchView('home')" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Scanner Engine</button></li>
+            <li><button onclick="switchView('dashboard')" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Threat Dashboard</button></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">API Access</a></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Enterprise Pricing</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-slate-900 dark:text-white font-bold mb-4">Resources</h4>
+          <ul class="space-y-3 text-sm text-slate-500 dark:text-slate-400">
+            <li><button onclick="switchView('help')" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Help Center</button></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Documentation</a></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Security Blog</a></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Case Studies</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-slate-900 dark:text-white font-bold mb-4">Company</h4>
+          <ul class="space-y-3 text-sm text-slate-500 dark:text-slate-400">
+            <li><button onclick="switchView('about')" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">About Us</button></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Careers</a></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Contact Support</a></li>
+            <li><a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Press Kit</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-slate-200 dark:border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-slate-500 dark:text-slate-400">&copy; 2026 PhishGuard Security Systems. All rights reserved.</p>
+        <div class="flex space-x-6 text-sm text-slate-500 dark:text-slate-400">
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy Policy</a>
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Terms of Service</a>
+          <div class="flex items-center text-green-600 dark:text-green-500 font-medium">
+             <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> All Systems Operational
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // --- AUTHENTICATION LOGIC ---
+    function toggleAuthModal() { document.getElementById('auth-modal').classList.toggle('hidden'); }
+    function switchAuthTab(tab) {
+      const l = document.getElementById('tab-login'), s = document.getElementById('tab-signup');
+      const fl = document.getElementById('form-login'), fs = document.getElementById('form-signup');
+      const activeClass = ['text-indigo-600', 'dark:text-indigo-400', 'border-b-2', 'border-indigo-600', 'dark:border-indigo-400'];
+      const inactiveClass = ['text-slate-400', 'hover:text-slate-600', 'dark:hover:text-gray-300'];
+
+      if(tab === 'login') { 
+        l.classList.add(...activeClass); l.classList.remove(...inactiveClass);
+        s.classList.add(...inactiveClass); s.classList.remove(...activeClass);
+        fl.classList.remove('hidden'); fs.classList.add('hidden'); 
+      } else { 
+        s.classList.add(...activeClass); s.classList.remove(...inactiveClass);
+        l.classList.add(...inactiveClass); l.classList.remove(...activeClass);
+        fs.classList.remove('hidden'); fl.classList.add('hidden'); 
+      }
+    }
+    function handleAuth(e) { e.preventDefault(); toggleAuthModal(); document.getElementById('btn-login-trigger').classList.add('hidden'); document.getElementById('user-menu').classList.remove('hidden'); document.getElementById('user-menu').classList.add('flex'); }
+    function handleLogout() { document.getElementById('btn-login-trigger').classList.remove('hidden'); document.getElementById('user-menu').classList.add('hidden'); document.getElementById('user-menu').classList.remove('flex'); }
+
+    // --- SPA ROUTING & MOBILE MENU ---
+    function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
+    function switchView(viewId) {
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+      const activeNav = document.getElementById(`nav-${viewId}`);
+      if(activeNav) activeNav.classList.add('active');
+
+      document.querySelectorAll('.mobile-nav-link').forEach(link => link.classList.remove('active'));
+      const activeMobileNav = document.getElementById(`nav-mobile-${viewId}`);
+      if(activeMobileNav) activeMobileNav.classList.add('active');
+
+      document.getElementById('mobile-menu').classList.add('hidden');
+
+      document.querySelectorAll('.view-section').forEach(view => {
+        if (view.id === `view-${viewId}`) { view.classList.remove('view-hidden'); view.classList.add('view-active'); } 
+        else { view.classList.remove('view-active'); view.classList.add('view-hidden'); }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- HISTORY FILTRATION LOGIC ---
+    function filterHistory(type, event) {
+       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+       event.currentTarget.classList.add('active');
+       const rows = document.querySelectorAll('.history-row');
+       rows.forEach(row => {
+          if (type === 'all' || row.getAttribute('data-type') === type) { row.style.display = ''; } 
+          else { row.style.display = 'none'; }
+       });
+    }
+
+    // --- THEME TOGGLE ---
+    function toggleTheme() { 
+      document.documentElement.classList.toggle('dark'); 
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; 
+    }
+    if(localStorage.theme === 'light' || (!('theme' in localStorage) && !window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.remove('dark');
+    }
+
+    // --- FILE UPLOAD UI UPDATE ---
+    function updateFileName(type) {
+        const fileInput = document.getElementById(`${type}-file`);
+        const nameDisplay = document.getElementById(`${type}-filename`);
+        if(fileInput.files.length > 0) {
+            nameDisplay.textContent = fileInput.files[0].name;
+            nameDisplay.classList.add('text-indigo-600', 'dark:text-indigo-400');
+        }
+    }
+
+    // --- BACKGROUND PARTICLES ---
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height, particles = [];
+    const icons = ['\uf030', '\uf008', '\uf1c1', '\uf022', '\uf390', '\uf132']; 
+
+    function initCanvas() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+    class Particle {
+      constructor() { this.reset(); this.y = Math.random() * height; }
+      reset() {
+        this.x = Math.random() * width; this.y = height + 50; this.speed = Math.random() * 0.5 + 0.2;
+        this.size = Math.random() * 14 + 12; this.icon = icons[Math.floor(Math.random() * icons.length)];
+        this.opacity = Math.random() * 0.3 + 0.1; this.rotation = Math.random() * 360; this.rotSpeed = (Math.random() - 0.5) * 0.5;
+      }
+      update() { this.y -= this.speed; this.rotation += this.rotSpeed; if (this.y < -50) this.reset(); }
+      draw() {
+        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation * Math.PI / 180); ctx.globalAlpha = this.opacity;
+        ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#6366f1' : '#94a3b8';
+        ctx.font = `900 ${this.size}px "Font Awesome 6 Free"`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(this.icon, 0, 0); ctx.restore();
+      }
+    }
+    function createParticles() { particles = []; let count = window.innerWidth < 768 ? 15 : 40; for (let i = 0; i < count; i++) particles.push(new Particle()); }
+    function animateParticles() { ctx.clearRect(0, 0, width, height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animateParticles); }
+    document.fonts.ready.then(() => { window.addEventListener('resize', () => { initCanvas(); createParticles(); }); initCanvas(); createParticles(); animateParticles(); });
+
+    // --- MOCK SCANNER LOGIC (WITH VALIDATION) ---
+    function closeResult() {
+      document.getElementById('result-section').classList.add('hidden');
+      document.getElementById('score-circle').style.strokeDashoffset = 439.8;
+    }
+
+    function analyzeContent(type, event) {
+      if (type === 'url' && !document.getElementById('url-input').value) return alert('Please enter a target URL.');
+      if (type === 'email' && !document.getElementById('email-input').value) return alert('Please paste email headers or content.');
+      if (type === 'image' && !document.getElementById('image-file').files.length) return alert('Please select an image file to analyze.');
+      if (type === 'video' && !document.getElementById('video-file').files.length) return alert('Please select a video file to analyze.');
+
+      const btn = event.currentTarget;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Scanning...';
+      btn.disabled = true;
+      closeResult();
+
+      setTimeout(() => {
+        generateMockReport(type);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 1500);
+    }
+
+    function generateMockReport(type) {
+      const isThreat = Math.random() > 0.4;
+      const riskScore = isThreat ? Math.floor(Math.random() * 35) + 65 : Math.floor(Math.random() * 30);
+      
+      const resultSection = document.getElementById('result-section');
+      const scoreText = document.getElementById('confidence-score');
+      const scoreCircle = document.getElementById('score-circle');
+      const statusBadge = document.getElementById('status-badge');
+      
+      let ringColor, badgeIcon, badgeText;
+      scoreCircle.classList.remove('text-red-500', 'text-green-500');
+      
+      if (riskScore > 60) {
+        ringColor = 'text-red-500'; 
+        badgeIcon = '<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>';
+        badgeText = 'THREAT DETECTED';
+      } else {
+        ringColor = 'text-green-500'; 
+        badgeIcon = '<span class="w-2 h-2 rounded-full bg-green-500"></span>';
+        badgeText = 'SAFE / AUTHENTIC';
+      }
+
+      scoreCircle.classList.add(ringColor);
+      statusBadge.innerHTML = `${badgeIcon} <span class="${ringColor} font-bold tracking-wide">${badgeText}</span>`;
+      document.getElementById('result-explanation').textContent = isThreat ? "Heuristic engine identified anomalous patterns matching known adversarial vectors." : "Payload execution within sandbox environments revealed no hostile intent.";
+      document.getElementById('result-indicators').innerHTML = `<li class="flex items-center text-slate-600 dark:text-slate-400"><i class="fas ${isThreat ? 'fa-xmark text-red-500' : 'fa-check text-green-500'} mr-2"></i> ${isThreat ? "Signature match found." : "Authentication verified."}</li>`;
+      
+      scoreText.textContent = `${riskScore}%`;
+      const offset = 439.8 - (riskScore / 100) * 439.8; 
+      
+      resultSection.classList.remove('hidden');
+      setTimeout(() => {
+        scoreCircle.style.strokeDashoffset = offset;
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+  </script>
+</body>
+</html>
