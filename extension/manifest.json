@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "URL Detector",
+  "version": "1.2",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": [
+    "http://localhost:8080/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
