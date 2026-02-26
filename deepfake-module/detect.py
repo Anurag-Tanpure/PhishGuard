@@ -5,24 +5,48 @@ def analyze_video(video_path):
 
     cap = cv2.VideoCapture(video_path)
 
-    fake_count = 0
-    real_count = 0
+    fake_scores = []
+    real_scores = []
+
+    frame_count = 0
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        result = predict_frame(frame)
+        if frame_count % 5 == 0:
+            label, confidence = predict_frame(frame)
 
-        if result == "Fake":
-            fake_count += 1
-        else:
-            real_count += 1
+            if label == "Fake":
+                fake_scores.append(confidence)
+            else:
+                real_scores.append(confidence)
+
+        frame_count += 1
 
     cap.release()
 
-    if fake_count > real_count:
-        return "Fake Video"
+    avg_fake = sum(fake_scores)/len(fake_scores) if fake_scores else 0
+    avg_real = sum(real_scores)/len(real_scores) if real_scores else 0
+
+    fake_count = len(fake_scores)
+    real_count = len(real_scores)
+
+    total = fake_count + real_count
+
+    if total == 0:
+        return "Uncertain", 0.0
+
+    fake_ratio = fake_count / total
+    real_ratio = real_count / total
+
+    # Real-friendly bias logic
+    if fake_ratio > 0.75:
+        return "Fake", round(avg_fake, 2)
+
+    elif real_ratio > 0.55:
+        return "Real", round(avg_real, 2)
+
     else:
-        return "Real Video"
+        return "Uncertain", round(max(avg_fake, avg_real), 2)
