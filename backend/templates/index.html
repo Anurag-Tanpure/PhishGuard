@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PhishGuard - AI Threat Monitor</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            text-align: center;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #38bdf8;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 30px;
+            margin: 20px auto;
+            width: 400px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px #000;
+        }
+
+        input, button {
+            padding: 10px;
+            width: 90%;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: none;
+        }
+
+        button {
+            background: #38bdf8;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0ea5e9;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #111827;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🔐 PhishGuard - AI Powered Threat Monitor</h1>
+
+    <!-- URL FORM -->
+    <div class="card">
+        <h2>Check URL</h2>
+        <form id="urlForm">
+            <input type="text" id="urlInput" placeholder="Enter URL here" required>
+            <button type="submit">Scan URL</button>
+        </form>
+        <div class="result" id="urlResult"></div>
+    </div>
+
+
+    <!-- IMAGE FORM -->
+    <div class="card">
+        <h2>Check Image</h2>
+        <form id="imageForm" enctype="multipart/form-data">
+            <input type="file" id="imageInput" accept="image/*" required>
+            <button type="submit">Scan Image</button>
+        </form>
+        <div class="result" id="imageResult"></div>
+    </div>
+
+
+<script>
+// ---------------------
+// URL FORM SUBMIT
+// ---------------------
+document.getElementById("urlForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    let url = document.getElementById("urlInput").value;
+    let resultBox = document.getElementById("urlResult");
+    resultBox.innerHTML = "Scanning...";
+
+    try {
+        let response = await fetch("/analyze-url", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({url: url})
+        });
+
+        let data = await response.json();
+
+        if(data.error){
+            resultBox.innerHTML = "Error: " + data.error;
+        } else {
+            resultBox.innerHTML = `
+                <strong>Result:</strong> ${data.message}<br>
+                <strong>Confidence:</strong> ${data.confidence}%<br>
+                <strong>Label:</strong> ${data.label}
+            `;
+        }
+
+    } catch (err){
+        resultBox.innerHTML = "Server Error";
+    }
+});
+
+
+// ---------------------
+// IMAGE FORM SUBMIT
+// ---------------------
+document.getElementById("imageForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    let fileInput = document.getElementById("imageInput");
+    let resultBox = document.getElementById("imageResult");
+    resultBox.innerHTML = "Scanning...";
+
+    let formData = new FormData();
+    formData.append("image_file", fileInput.files[0]);
+
+    try {
+        let response = await fetch("/analyze-image", {
+            method: "POST",
+            body: formData
+        });
+
+        let data = await response.json();
+
+        if(data.error){
+            resultBox.innerHTML = "Error: " + data.error;
+        } else {
+            resultBox.innerHTML = JSON.stringify(data, null, 2);
+        }
+
+    } catch (err){
+        resultBox.innerHTML = "Server Error";
+    }
+});
+</script>
+
+</body>
+</html>

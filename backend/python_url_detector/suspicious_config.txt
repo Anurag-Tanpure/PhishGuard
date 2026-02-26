@@ -1,0 +1,3 @@
+length_threshold=75
+suspicious_chars=@,%25,&,=,+
+suspicious_keywords=verify,update,secure,login,bank,confirm,account
