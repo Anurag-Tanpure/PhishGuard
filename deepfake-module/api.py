@@ -33,13 +33,14 @@ def detect_ai_video():
 
         print("Video saved at:", video_path)
 
-        # Correct indentation here
-        label, confidence = analyze_video(video_path)
+        # Get prediction with explanation
+        label, confidence, reason = analyze_video(video_path)
 
         return jsonify({
             "status": "success",
             "video_status": label,
-            "confidence": confidence
+            "confidence": confidence,
+            "reason": reason
         })
 
     except Exception as e:

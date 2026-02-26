@@ -36,17 +36,16 @@ def analyze_video(video_path):
     total = fake_count + real_count
 
     if total == 0:
-        return "Uncertain", 0.0
+        return "Uncertain", 0.0, "No frames analyzed"
 
     fake_ratio = fake_count / total
     real_ratio = real_count / total
 
-    # Real-friendly bias logic
     if fake_ratio > 0.75:
-        return "Fake", round(avg_fake, 2)
+        return "Fake", round(avg_fake,2), "Frame texture inconsistency detected"
 
     elif real_ratio > 0.55:
-        return "Real", round(avg_real, 2)
+        return "Real", round(avg_real,2), "Natural facial consistency observed"
 
     else:
-        return "Uncertain", round(max(avg_fake, avg_real), 2)
+        return "Uncertain", round(max(avg_fake, avg_real),2), "Mixed frame signals detected"
